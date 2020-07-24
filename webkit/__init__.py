@@ -98,10 +98,9 @@ class Window(QMainWindow):
         self.browser.setUrl(QUrl("http://127.0.0.1:1"))
         self.browser.page().loadFinished.connect(self.onload)
         self.browser.page().setZoomFactor(page_zoom)
-        if devtools:
-            self.devtools = QWebEngineView()
-            self.devtools.page().setZoomFactor(devtools_zoom)
-            self.browser.page().setDevToolsPage(self.devtools.page())
+        self.devtools = QWebEngineView()
+        self.devtools.page().setZoomFactor(devtools_zoom)
+        self.browser.page().setDevToolsPage(self.devtools.page())
         wid = QWidget(self)
         self.setCentralWidget(wid)
         if devtools == 'horizontal':
