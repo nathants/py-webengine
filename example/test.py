@@ -19,6 +19,9 @@ class Main(webkit.Thread):
     def main(self):
         self.load('http://localhost:8080')
 
+        # check the network requests
+        assert ['get', 'http://localhost:8080/'] == self.network_requests[0]
+
         # check the link names
         assert ['home', 'page 1', 'broken link'] == self.attr('a', 'innerText')
 

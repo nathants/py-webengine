@@ -3,21 +3,34 @@
 from PyQt5.QtCore import QThread, pyqtSignal, pyqtSlot, QUrl
 from PyQt5.QtWidgets import QWidget, QMainWindow, QHBoxLayout, QVBoxLayout, QApplication
 from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor
 import traceback
 import sys
 import os
 import time
 import concurrent.futures
+import collections
+
+class NetworkInterceptor(QWebEngineUrlRequestInterceptor):
+    def __init__(self, network_requests):
+        super().__init__()
+        self.network_requests = network_requests
+
+    def interceptRequest(self, info):
+        self.network_requests.append([bytes(info.requestMethod()).decode().lower(), bytes(info.requestUrl().toEncoded()).decode()])
 
 class Thread(QThread):
     screenshot_signal = pyqtSignal(str)
 
     def __init__(self, app, browser, *a, **kw):
         super().__init__(*a, **kw)
+        self.network_requests = collections.deque([], 1000)
         self.load_counter = 0
         self.app = app
         self.browser = browser
         self.last_dom = None
+        self.network_interceptor = NetworkInterceptor(self.network_requests)
+        self.browser.page().profile().setUrlRequestInterceptor(self.network_interceptor)
 
     def screenshot(self, path):
         assert path.endswith('.jpg') or path.endswith('.png')
@@ -39,6 +52,16 @@ class Thread(QThread):
     def load(self, url):
         if '://' not in url:
             url = f'https://{url}'
+        # load a blank page before clearing network requests
+        count = self.load_counter
+        self.js(f'document.location.href = "http://127.0.0.1:1"')
+        while True:
+            if self.load_counter == count + 1:
+                break
+            time.sleep(.01)
+        # clear network requests
+        self.network_requests.clear()
+        # now that network requests are clear and the page is empty, load the next page
         count = self.load_counter
         self.js(f'document.location.href = "{url}"')
         while True:
@@ -47,14 +70,11 @@ class Thread(QThread):
             time.sleep(.01)
         self.last_dom = self.js('document.body.innerHTML')
 
-    def _browser_ready(self):
+    def run(self):
         while True:
             if self.load_counter == 1:
                 break
             time.sleep(.01)
-
-    def run(self):
-        self._browser_ready()
         try:
             self.main()
         except:
@@ -74,7 +94,7 @@ class Window(QMainWindow):
         self.browser = QWebEngineView()
         self.t = thread(app, self.browser)
         self.t.screenshot_signal.connect(self.screenshot)
-        self.browser.setUrl(QUrl("http://127.0.0.1"))
+        self.browser.setUrl(QUrl("http://127.0.0.1:1"))
         self.browser.page().loadFinished.connect(self.onload)
         self.browser.page().setZoomFactor(page_zoom)
         self.devtools = QWebEngineView()
