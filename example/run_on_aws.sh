@@ -11,7 +11,7 @@ trap "aws-ec2-rm -y $id" EXIT
 
 aws-ec2-ssh $id -yc '
     curl https://raw.githubusercontent.com/nathants/py-webkit/master/scripts/install_archlinux.sh | bash
-    sudo pacman -S --noconfirm \
+    sudo pacman -Sy --noconfirm \
          leiningen \
          npm
     if ! which runclj &>/dev/null; then (
