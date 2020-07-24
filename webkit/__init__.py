@@ -1,9 +1,8 @@
 # type: ignore
 # flake8: noqa
-from PyQt5.QtCore import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
-from PyQt5.QtWebEngineWidgets import *
+from PyQt5.QtCore import QThread, pyqtSignal, pyqtSlot, QUrl
+from PyQt5.QtWidgets import QWidget, QMainWindow, QHBoxLayout, QVBoxLayout, QApplication
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 import traceback
 import sys
 import os
@@ -101,7 +100,7 @@ class Window(QMainWindow):
     def onload(self, *a, **kw):
         self.t.load_counter += 1
 
-def run_thread(thread_class, devtools=None, page_zoom=1.0, devtools_zoom=1.5, dimensions=(1024, 1024), qt_argv=[]):
+def run_thread(thread_class, devtools=None, page_zoom=1.0, devtools_zoom=1.5, dimensions=(1024, 1024), qt_argv=['-platform', 'minimal']):
     app = QApplication(qt_argv)
     window = Window(app, thread_class, devtools, page_zoom, devtools_zoom, dimensions)
     if app.exec_() != 0:
