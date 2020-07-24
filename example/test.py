@@ -59,6 +59,11 @@ class Main(webkit.Thread):
         self.wait_for_dom_changes()
         assert ['this is a page with some data: 10'] == self.attr("#content p:first-of-type", 'innerText')
 
+        # save a screenshot
+        image = '/tmp/screen.png'
+        self.screenshot(image)
+        assert os.path.isfile(image)
+
 def test():
     # compile and run client webapp
     server = subprocess.Popen('port=8080 runclj client.cljs', shell=True)
@@ -74,7 +79,7 @@ def test():
         else:
             assert False
         # run webkit
-        webkit.run_thread(Main, devtools='horizontal')
+        webkit.run_thread(Main)
     finally:
         # stop server
         server.terminate()
