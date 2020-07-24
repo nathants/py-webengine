@@ -17,7 +17,10 @@ class NetworkInterceptor(QWebEngineUrlRequestInterceptor):
         self.network_requests = network_requests
 
     def interceptRequest(self, info):
-        self.network_requests.append([bytes(info.requestMethod()).decode().lower(), bytes(info.requestUrl().toEncoded()).decode()])
+        method = bytes(info.requestMethod()).decode().lower()
+        url = bytes(info.requestUrl().toEncoded()).decode()
+        if not url.startswith('devtools://'):
+            self.network_requests.append([method, url])
 
 class Thread(QThread):
     screenshot_signal = pyqtSignal(str)
