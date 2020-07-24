@@ -90,7 +90,8 @@ class Window(QMainWindow):
     def __init__(self, app, thread, devtools, page_zoom, devtools_zoom, dimensions):
         assert not devtools or devtools in {'horizontal', 'vertical'}
         super().__init__()
-        self.setFixedSize(*dimensions)
+        if dimensions and dimensions[0] and dimensions[1]:
+            self.setFixedSize(*dimensions)
         self.browser = QWebEngineView()
         self.t = thread(app, self.browser)
         self.t.screenshot_signal.connect(self.screenshot)
@@ -120,7 +121,7 @@ class Window(QMainWindow):
     def onload(self, *a, **kw):
         self.t.load_counter += 1
 
-def run_thread(thread_class, devtools=None, page_zoom=1.0, devtools_zoom=1.5, dimensions=(1024, 1024), qt_argv=['-platform', 'minimal']):
+def run_thread(thread_class, devtools=None, page_zoom=1.0, devtools_zoom=1.5, dimensions=(0, 0), qt_argv=['-platform', 'minimal']):
     app = QApplication(qt_argv)
     window = Window(app, thread_class, devtools, page_zoom, devtools_zoom, dimensions)
     if app.exec_() != 0:
