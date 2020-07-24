@@ -19,13 +19,11 @@ aws-ec2-ssh $id -yc '
         git clone https://github.com/nathants/runclj
         sudo mv runclj/bin/* runclj/bin/.lein/ /usr/local/bin
     ) fi
-'
+' >/dev/null
 
 aws-ec2-ssh $id -yc '
     git clone https://github.com/nathants/py-webkit
     cd py-webkit
     sudo python -m pip install pytest requests
     xvfb-run -d -e error.log python example/test.py
-'
-
-aws-ec2-scp :/tmp/screen.png /tmp/ $id -y
+' >/dev/null
