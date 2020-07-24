@@ -64,8 +64,15 @@ class Main(webkit.Thread):
 
         # save a screenshot
         image = '/tmp/screen.png'
+        if os.path.isfile(image):
+            os.remove(image)
         self.screenshot(image)
-        assert os.path.isfile(image)
+        for _ in range(100):
+            if os.path.isfile(image):
+                break
+            time.sleep(.1)
+        else:
+            assert False, 'no screenshot found'
 
 def test():
     # compile and run client webapp
