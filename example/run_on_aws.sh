@@ -15,6 +15,7 @@ aws-ec2-ssh $id -yc '
          leiningen \
          npm
     if ! which runclj &>/dev/null; then (
+        cd /tmp
         rm -rf runclj
         git clone https://github.com/nathants/runclj
         sudo mv runclj/bin/* runclj/bin/.lein/ /usr/local/bin
@@ -22,6 +23,8 @@ aws-ec2-ssh $id -yc '
 ' >/dev/null
 
 aws-ec2-ssh $id -yc '
+    cd /tmp
+    rm -rf py-webkit
     git clone https://github.com/nathants/py-webkit
     cd py-webkit
     sudo python -m pip install pytest requests
