@@ -24,12 +24,12 @@ class NetworkInterceptor(QWebEngineUrlRequestInterceptor):
 
 class Thread(QThread):
     screenshot_signal = pyqtSignal(str)
+    exit_signal = pyqtSignal(int)
 
-    def __init__(self, app, browser, *a, **kw):
+    def __init__(self, browser, *a, **kw):
         super().__init__(*a, **kw)
         self.network_requests = collections.deque([], 1000)
         self.load_counter = 0
-        self.app = app
         self.browser = browser
         self.last_dom = None
         self.network_interceptor = NetworkInterceptor(self.network_requests)
@@ -82,9 +82,9 @@ class Thread(QThread):
             self.main()
         except:
             traceback.print_exc()
-            self.app.exit(1)
+            self.exit_signal.emit(1)
         else:
-            self.app.exit(0)
+            self.exit_signal.emit(0)
 
     def main(self):
         assert False, 'please implement main()'
@@ -96,8 +96,10 @@ class Window(QMainWindow):
         if dimensions and dimensions[0] and dimensions[1]:
             self.setFixedSize(*dimensions)
         self.browser = QWebEngineView()
-        self.t = thread(app, self.browser)
-        self.t.screenshot_signal.connect(self.screenshot)
+        self.app = app
+        self.thread = thread(self.browser, parent=self)
+        self.thread.screenshot_signal.connect(self.screenshot)
+        self.thread.exit_signal.connect(self.exit)
         self.browser.setUrl(QUrl("http://127.0.0.1:1"))
         self.browser.page().loadFinished.connect(self.onload)
         self.browser.page().setZoomFactor(page_zoom)
@@ -115,14 +117,19 @@ class Window(QMainWindow):
             box.addWidget(self.devtools)
         wid.setLayout(box)
         self.show()
-        self.t.start()
+        self.thread.start()
+
+    @pyqtSlot(int)
+    def exit(self, code):
+        self.thread.wait(1000 * 15)
+        self.app.exit(0)
 
     @pyqtSlot(str)
     def screenshot(self, path):
         self.browser.grab().save(path)
 
     def onload(self, *a, **kw):
-        self.t.load_counter += 1
+        self.thread.load_counter += 1
 
 def run_thread(thread_class, devtools=None, page_zoom=1.0, devtools_zoom=1.5, dimensions=(0, 0), qt_argv=['-platform', 'minimal']):
     app = QApplication(qt_argv)
