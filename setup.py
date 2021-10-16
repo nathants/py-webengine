@@ -3,13 +3,13 @@ import setuptools
 setuptools.setup(
     version="0.0.1",
     license='mit',
-    name='py-webkit',
+    name='py-webengine',
     author='nathan todd-stone',
     author_email='me@nathants.com',
-    url='http://github.com/nathants/py-webkit',
-    packages=['webkit'],
+    url='http://github.com/nathants/py-webengine',
+    packages=['webengine'],
     python_requires='>=3.6',
     install_requires=['PyQt5',
                       'PyQtWebEngine'],
-    description='browser automation with pyqt webkit',
+    description='browser automation with pyqt webengine',
 )

@@ -3,10 +3,10 @@ import os
 import pytest
 import time
 import requests
-import webkit
+import webengine
 import subprocess
 
-class Main(webkit.Thread):
+class Main(webengine.Thread):
     def attr(self, selector, attr):
         return self.js(f'[...document.querySelectorAll("{selector}")].map(x => x.{attr})')
 
@@ -88,8 +88,8 @@ def test():
                 break
         else:
             assert False
-        # run webkit
-        webkit.run_thread(Main)
+        # run webengine
+        webengine.run_thread(Main)
     finally:
         # stop server
         server.terminate()

@@ -6,4 +6,4 @@ sudo pacman -Sy --noconfirm \
      python-pyqt5 \
      python-pyqtwebengine \
      xorg-server-xvfb
-sudo python -m pip install git+https://github.com/nathants/py-webkit
+sudo python -m pip install git+https://github.com/nathants/py-webengine

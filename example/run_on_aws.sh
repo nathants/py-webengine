@@ -6,11 +6,11 @@ if ! which aws-ec2-new; then
     exit 1
 fi
 
-id=$(aws-ec2-new --type z1d.large --ami arch py-webkit-test-box)
+id=$(aws-ec2-new --type z1d.large --ami arch py-webengine-test-box)
 trap "aws-ec2-rm -y $id" EXIT
 
 aws-ec2-ssh $id -yc '
-    curl https://raw.githubusercontent.com/nathants/py-webkit/master/scripts/install_archlinux.sh | bash
+    curl https://raw.githubusercontent.com/nathants/py-webengine/master/scripts/install_archlinux.sh | bash
     sudo pacman -Sy --noconfirm \
          leiningen \
          npm
@@ -24,9 +24,9 @@ aws-ec2-ssh $id -yc '
 
 aws-ec2-ssh $id -yc '
     cd /tmp
-    rm -rf py-webkit
-    git clone https://github.com/nathants/py-webkit
-    cd py-webkit
+    rm -rf py-webengine
+    git clone https://github.com/nathants/py-webengine
+    cd py-webengine
     sudo python -m pip install pytest requests
     xvfb-run -d -e error.log python example/test.py
 ' >/dev/null

@@ -1,9 +1,9 @@
-# py-webkit
+# py-webengine
 
 ## what
 
-javascript driven browser automation from python with pyqt5 and webkit.
+javascript driven browser automation from python with pyqt5 and webengine.
 
 ## example
 
-[testing a react app](https://github.com/nathants/py-webkit/blob/master/example/)
+[testing a react app](https://github.com/nathants/py-webengine/blob/master/example/)
