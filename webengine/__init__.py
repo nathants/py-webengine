@@ -121,8 +121,7 @@ class Window(QMainWindow):
 
     @pyqtSlot(int)
     def exit(self, code):
-        self.thread.wait(1000 * 15)
-        self.app.exit(0)
+        self.app.exit(code)
 
     @pyqtSlot(str)
     def screenshot(self, path):
