@@ -25,13 +25,14 @@ class NetworkInterceptor(QWebEngineUrlRequestInterceptor):
 class Thread(QThread):
     screenshot_signal = pyqtSignal(str)
     exit_signal = pyqtSignal(int)
+    action_delay_seconds = .01 # seconds
+    timeout_seconds = 10 # seconds
 
     def __init__(self, browser, *a, **kw):
         super().__init__(*a, **kw)
         self.network_requests = collections.deque([], 1000)
         self.load_counter = 0
         self.browser = browser
-        self.last_dom = None
         self.network_interceptor = NetworkInterceptor(self.network_requests)
         self.browser.page().profile().setUrlRequestInterceptor(self.network_interceptor)
 
@@ -42,15 +43,29 @@ class Thread(QThread):
     def js(self, code):
         f = concurrent.futures.Future()
         self.browser.page().runJavaScript(code, f.set_result)
+        time.sleep(self.action_delay_seconds)
         return f.result()
 
-    def wait_for_dom_changes(self):
-        for _ in range(1000):
-            time.sleep(.01)
-            if self.last_dom != self.js('document.body.innerHTML'):
-                self.last_dom = self.js('document.body.innerHTML')
+    def attr(self, selector, attr):
+        return self.js(f'[...document.querySelectorAll("{selector}")].map(x => x.{attr})')
+
+    def location(self):
+        return self.js('document.location.href.split("/#")[1]')
+
+    def click(self, selector):
+        return self.js(f'document.querySelectorAll("{selector}")[0].click()')
+
+    def wait_for_attr(self, selector, attr, value):
+        start = time.monotonic()
+        log = 1
+        while True:
+            got = self.attr(selector, attr)
+            if value == got:
                 return
-        assert False, 'timeout'
+            if time.monotonic() - start > log:
+                print('waiting for:', [selector, attr, value, '!=', got])
+                log += 1
+            assert time.monotonic() - start < self.timeout_seconds, [selector, attr, value, '!=', got]
 
     def load(self, url):
         if '://' not in url:
@@ -71,7 +86,6 @@ class Thread(QThread):
             if self.load_counter == count + 1:
                 break
             time.sleep(.01)
-        self.last_dom = self.js('document.body.innerHTML')
 
     def run(self):
         while True:

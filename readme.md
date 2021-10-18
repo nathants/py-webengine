@@ -2,7 +2,7 @@
 
 ## what
 
-javascript driven browser automation from python with pyqt5 and webengine.
+javascript driven browser automation from python with pyqt5 and qt5-webengine.
 
 ## example
 
