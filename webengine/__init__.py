@@ -47,7 +47,6 @@ class Thread(QThread):
         return f.result()
 
     def attr(self, selector, attr):
-        print('attr:', selector, attr)
         return self.js(f'[...document.querySelectorAll("{selector}")].map(x => x.{attr})')
 
     def location(self):
