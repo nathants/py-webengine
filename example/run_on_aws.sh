@@ -35,5 +35,7 @@ aws-ec2-ssh $id -yc '
     cd py-webengine
     sudo python -m pip install pytest requests
     export QTWEBENGINE_CHROMIUM_FLAGS="--no-sandbox --disable-dev-shm-usage --disable-gpu"
+    export QT_OPENGL=software
+    export QT_QUICK_BACKEND=software
     xvfb-run -d -e error.log python example/test.py
 ' >/dev/null
