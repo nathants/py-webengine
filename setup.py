@@ -9,7 +9,7 @@ setuptools.setup(
     url='http://github.com/nathants/py-webengine',
     packages=['webengine'],
     python_requires='>=3.6',
-    install_requires=['PyQt5',
-                      'PyQtWebEngine'],
+    install_requires=['PyQt6',
+                      'PyQt6-WebEngine'],
     description='browser automation with pyqt webengine',
 )

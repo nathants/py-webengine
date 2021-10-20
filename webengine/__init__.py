@@ -1,9 +1,9 @@
 # type: ignore
 # flake8: noqa
-from PyQt5.QtCore import QThread, pyqtSignal, pyqtSlot, QUrl
-from PyQt5.QtWidgets import QWidget, QMainWindow, QHBoxLayout, QVBoxLayout, QApplication
-from PyQt5.QtWebEngineWidgets import QWebEngineView
-from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor
+from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot, QUrl
+from PyQt6.QtWidgets import QWidget, QMainWindow, QHBoxLayout, QVBoxLayout, QApplication
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWebEngineCore import QWebEngineUrlRequestInterceptor
 import traceback
 import sys
 import os
@@ -147,5 +147,5 @@ class Window(QMainWindow):
 def run_thread(thread_class, devtools=None, page_zoom=1.0, devtools_zoom=1.5, dimensions=(0, 0), qt_argv=['-platform', 'minimal']):
     app = QApplication(qt_argv)
     window = Window(app, thread_class, devtools, page_zoom, devtools_zoom, dimensions)
-    if app.exec_() != 0:
+    if app.exec() != 0:
         sys.exit(1)

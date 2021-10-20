@@ -2,7 +2,7 @@
 
 ## what
 
-javascript driven browser automation with qt5-webengine.
+javascript driven browser automation with qt6-webengine.
 
 ## example
 

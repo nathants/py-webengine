@@ -6,8 +6,8 @@ RUN pacman -Syu --noconfirm \
     entr \
     git \
     python-pip \
-    python-pyqt5 \
-    python-pyqtwebengine \
+    python-pyqt6 \
+    python-pyqt6-webengine \
     xorg-server-xvfb
 
 RUN python -m pip install \

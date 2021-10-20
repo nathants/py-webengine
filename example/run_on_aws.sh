@@ -6,7 +6,11 @@ if ! which aws-ec2-new; then
     exit 1
 fi
 
-id=$(aws-ec2-new --type z1d.large --ami arch py-webengine-test-box)
+id=$(aws-ec2-new \
+         --type c5d.large \
+         --ami arch \
+         py-webengine-test-box)
+
 trap "aws-ec2-rm -y $id" EXIT
 
 aws-ec2-ssh $id -yc '
