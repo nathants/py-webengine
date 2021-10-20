@@ -14,10 +14,12 @@ id=$(aws-ec2-new \
 trap "aws-ec2-rm -y $id" EXIT
 
 aws-ec2-ssh $id -yc '
+    echo "Server = https://mirrors.kernel.org/archlinux/\$repo/os/\$arch" | sudo tee /etc/pacman.d/mirrorlist
     curl https://raw.githubusercontent.com/nathants/py-webengine/master/scripts/install_archlinux.sh | bash
     sudo pacman -Sy --noconfirm \
          leiningen \
          npm
+    sudo npm install -g http-server
     if ! which runclj &>/dev/null; then (
         cd /tmp
         rm -rf runclj
@@ -32,5 +34,6 @@ aws-ec2-ssh $id -yc '
     git clone https://github.com/nathants/py-webengine
     cd py-webengine
     sudo python -m pip install pytest requests
+    export QTWEBENGINE_CHROMIUM_FLAGS="--no-sandbox --disable-dev-shm-usage --disable-gpu"
     xvfb-run -d -e error.log python example/test.py
 ' >/dev/null

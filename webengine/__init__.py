@@ -47,15 +47,18 @@ class Thread(QThread):
         return f.result()
 
     def attr(self, selector, attr):
+        print('attr:', selector, attr)
         return self.js(f'[...document.querySelectorAll("{selector}")].map(x => x.{attr})')
 
     def location(self):
         return self.js('document.location.href.split("/#")[1]')
 
     def click(self, selector):
+        print('click:', selector)
         return self.js(f'document.querySelectorAll("{selector}")[0].click()')
 
     def wait_for_attr(self, selector, attr, value):
+        print('wait for:', selector, attr, value)
         start = time.monotonic()
         log = 1
         while True:
