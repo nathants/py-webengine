@@ -2,7 +2,13 @@
 
 ## what
 
-javascript driven browser automation with pyqt6-webengine.
+browser automation from python with pyqt6-webengine.
+
+you can:
+- excute custom js
+- inspect the attribute of elements matching a css selector
+- use native mouse input (not js)
+- use native keyboard input (not js)
 
 ## example
 
