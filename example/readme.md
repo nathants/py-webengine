@@ -1,8 +1,20 @@
 in this example we will test the frontend from [new-gocljs](https://github.com/nathants/new-gocljs).
 
-we have included `frontend/public/index.html.gz` which is output from [new-gocljs/bin/deploy.sh](https://github.com/nathants/new-gocljs/blob/master/bin/deploy.sh).
+a live demo is [here](https://gocljs.nathants.com).
 
-if you have the dependencies installed, run: `python test.py`
+we have included:
+
+- `frontend/public/index.html.gz`
+
+which is output from:
+
+- [new-gocljs/bin/deploy.sh](https://github.com/nathants/new-gocljs/blob/master/bin/deploy.sh)
+
+if you have the dependencies installed, run:
+
+```bash
+python test.py
+```
 
 otherwise use docker:
 

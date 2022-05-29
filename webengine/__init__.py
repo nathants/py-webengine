@@ -42,17 +42,17 @@ class Thread(QThread):
         self.network_interceptor = NetworkInterceptor(self.network_requests)
         self.browser.page().profile().setUrlRequestInterceptor(self.network_interceptor)
 
-    def screenshot(self, path):
-        assert path.endswith('.jpg') or path.endswith('.png')
-        self.screenshot_signal.emit(path)
-
     def js(self, code):
+        "execute javascript and return the result as a string"
         f = concurrent.futures.Future()
         self.browser.page().runJavaScript(code, f.set_result)
         time.sleep(self.action_delay_seconds)
         return f.result()
 
     def click(self, selector):
+        "send native mouse input at the center of the first element matching selector"
+        count = int(self.js(f'[...document.querySelectorAll("{selector}")].length'))
+        assert count > 0, f'no element to click for selector: {selector}'
         x = int(self.js(f'[...document.querySelectorAll("{selector}")][0].getClientRects()[0].x'))
         y = int(self.js(f'[...document.querySelectorAll("{selector}")][0].getClientRects()[0].y'))
         width = int(self.js(f'[...document.querySelectorAll("{selector}")][0].getClientRects()[0].width'))
@@ -66,6 +66,7 @@ class Thread(QThread):
         QApplication.postEvent(self.browser.focusProxy(), event)
 
     def type(self, value):
+        "send native keyboard input, one character at a time"
         for char in value:
             event = QKeyEvent(QEvent.Type.KeyPress, 0, Qt.KeyboardModifier.NoModifier, char)
             event.artificial = True
@@ -76,6 +77,7 @@ class Thread(QThread):
             QApplication.postEvent(self.browser.focusProxy(), event)
 
     def enter(self):
+        "send native keyboard input enter"
         event = QKeyEvent(QEvent.Type.KeyPress, 0, Qt.KeyboardModifier.NoModifier, "\r")
         event.artificial = True
         QApplication.postEvent(self.browser.focusProxy(), event)
@@ -85,12 +87,11 @@ class Thread(QThread):
         QApplication.postEvent(self.browser.focusProxy(), event)
 
     def attr(self, selector, attr):
+        "return the list of the attribute for all elements matching selector"
         return self.js(f'[...document.querySelectorAll("{selector}")].map(x => x.{attr})')
 
-    def location(self):
-        return self.js('document.location.href.split("/#")[1]')
-
     def wait_attr(self, selector, attr, value):
+        "wait for the attribute of all elements matching a selector have the given value"
         if callable(value):
             print('waiting for:', [selector, attr, 'predicate(x)'])
         else:
@@ -113,6 +114,7 @@ class Thread(QThread):
             assert time.monotonic() - start < self.timeout_seconds, [selector, attr, value, '!=', got]
 
     def load(self, url):
+        "load url"
         if '://' not in url:
             url = f'https://{url}'
         # load a blank page before clearing network requests
@@ -132,7 +134,13 @@ class Thread(QThread):
                 break
             time.sleep(.01)
 
+    def screenshot(self, path):
+        "save a png or jpg at path"
+        assert path.endswith('.jpg') or path.endswith('.png')
+        self.screenshot_signal.emit(path)
+
     def run(self):
+        "run the main method"
         while True:
             if self.load_counter == 1:
                 break
@@ -146,6 +154,7 @@ class Thread(QThread):
             self.exit_signal.emit(0)
 
     def main(self):
+        "implement this method as your test"
         assert False, 'please implement main()'
 
 class Window(QMainWindow):

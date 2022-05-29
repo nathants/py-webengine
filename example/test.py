@@ -6,21 +6,24 @@ import pytest
 import time
 import webengine
 import subprocess
-import traceback
 
 host = 'http://localhost:8000'
 
 class Main(webengine.Thread):
-    def main(self):
-        self.action_delay_seconds = .025
 
-        # wait for http server to come up and the site to load
+    action_delay_seconds = .025
+
+    def location(self):
+        return self.js('document.location.href.split("/#")[1]')
+
+    def main(self):
+
+        # wait for http server to come up and the site to load properly
         for _ in range(600):
             try:
                 self.load(host)
                 self.wait_attr('a', 'innerText', ['home', 'files', 'api', 'websocket'])
             except:
-                traceback.print_exc()
                 print('wait for site to be ready')
                 time.sleep(1)
             else:
@@ -47,6 +50,8 @@ class Main(webengine.Thread):
         # click on files and check contents
         self.click('a#files')
         self.wait_attr("#content p", 'innerText', ["files"])
+
+    import ipdb; ipdb.set_trace()
 
         # click on websocket and check contents
         self.click('a#websocket')
@@ -75,14 +80,15 @@ class Main(webengine.Thread):
             assert False, 'no screenshot found'
 
 def test():
-    # compile and run client webapp
+    # build your webapp
     subprocess.check_call('gunzip --force --keep index.html.gz', shell=True)
+    # run your webapp
     server = subprocess.Popen('python3 -m http.server', shell=True)
     try:
         # run webengine
         webengine.run_thread(Main, devtools='horizontal')
     finally:
-        # stop server
+        # stop webapp
         server.terminate()
 
 if __name__ == '__main__':
