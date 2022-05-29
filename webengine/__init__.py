@@ -1,12 +1,18 @@
 # type: ignore
-# flake8: noqa
+
+from PyQt6.QtGui import QKeyEvent, QMouseEvent, QPointingDevice
+from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot, QUrl, QEvent, Qt, QPointF
+from PyQt6.QtWidgets import QWidget, QMainWindow, QHBoxLayout, QVBoxLayout, QApplication
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWebEngineCore import QWebEngineUrlRequestInterceptor
+
 from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot, QUrl
 from PyQt6.QtWidgets import QWidget, QMainWindow, QHBoxLayout, QVBoxLayout, QApplication
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEngineUrlRequestInterceptor
+
 import traceback
 import sys
-import os
 import time
 import concurrent.futures
 import collections
@@ -46,23 +52,54 @@ class Thread(QThread):
         time.sleep(self.action_delay_seconds)
         return f.result()
 
+    def click(self, selector):
+        x = int(self.js(f'[...document.querySelectorAll("{selector}")][0].getClientRects()[0].x'))
+        y = int(self.js(f'[...document.querySelectorAll("{selector}")][0].getClientRects()[0].y'))
+        width = int(self.js(f'[...document.querySelectorAll("{selector}")][0].getClientRects()[0].width'))
+        height = int(self.js(f'[...document.querySelectorAll("{selector}")][0].getClientRects()[0].height'))
+        event = QMouseEvent(QEvent.Type.MouseButtonPress, QPointF(x + (width / 2), y + (height / 2)), Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
+        event.artificial = True
+        QApplication.postEvent(self.browser.focusProxy(), event)
+        time.sleep(self.action_delay_seconds)
+        event = QMouseEvent(QEvent.Type.MouseButtonRelease, QPointF(x + (width / 2), y + (height / 2)), Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
+        event.artificial = True
+        QApplication.postEvent(self.browser.focusProxy(), event)
+
+    def type(self, value):
+        for char in value:
+            event = QKeyEvent(QEvent.Type.KeyPress, 0, Qt.KeyboardModifier.NoModifier, char)
+            event.artificial = True
+            QApplication.postEvent(self.browser.focusProxy(), event)
+            time.sleep(self.action_delay_seconds)
+            event = QKeyEvent(QEvent.Type.KeyRelease, 0, Qt.KeyboardModifier.NoModifier, char)
+            event.artificial = True
+            QApplication.postEvent(self.browser.focusProxy(), event)
+
+    def enter(self):
+        event = QKeyEvent(QEvent.Type.KeyPress, 0, Qt.KeyboardModifier.NoModifier, "\r")
+        event.artificial = True
+        QApplication.postEvent(self.browser.focusProxy(), event)
+        time.sleep(self.action_delay_seconds)
+        event = QKeyEvent(QEvent.Type.KeyRelease, 0, Qt.KeyboardModifier.NoModifier, "\r")
+        event.artificial = True
+        QApplication.postEvent(self.browser.focusProxy(), event)
+
     def attr(self, selector, attr):
         return self.js(f'[...document.querySelectorAll("{selector}")].map(x => x.{attr})')
 
     def location(self):
         return self.js('document.location.href.split("/#")[1]')
 
-    def click(self, selector):
-        print('click:', selector)
-        return self.js(f'document.querySelectorAll("{selector}")[0].click()')
-
-    def wait_for_attr(self, selector, attr, value):
+    def wait_attr(self, selector, attr, value):
         print('wait for:', selector, attr, value)
         start = time.monotonic()
         log = 1
         while True:
             got = self.attr(selector, attr)
-            if value == got:
+            if callable(value):
+                if value(got):
+                    return
+            elif value == got:
                 return
             if time.monotonic() - start > log:
                 print('waiting for:', [selector, attr, value, '!=', got])
@@ -74,7 +111,7 @@ class Thread(QThread):
             url = f'https://{url}'
         # load a blank page before clearing network requests
         count = self.load_counter
-        self.js(f'document.location.href = "http://127.0.0.1:1"')
+        self.js('document.location.href = "http://127.0.0.1:1"')
         while True:
             if self.load_counter == count + 1:
                 break
@@ -149,5 +186,6 @@ class Window(QMainWindow):
 def run_thread(thread_class, devtools=None, page_zoom=1.0, devtools_zoom=1.5, dimensions=(0, 0), qt_argv=['-platform', 'minimal']):
     app = QApplication(qt_argv)
     window = Window(app, thread_class, devtools, page_zoom, devtools_zoom, dimensions)
+    _ = window # hold ref to window to avoid gc webengine
     if app.exec() != 0:
         sys.exit(1)
