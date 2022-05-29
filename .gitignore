@@ -1,1 +1,3 @@
-.lein/
+node_modules/
+example/public/js/
+index.html

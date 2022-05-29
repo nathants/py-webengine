@@ -91,7 +91,10 @@ class Thread(QThread):
         return self.js('document.location.href.split("/#")[1]')
 
     def wait_attr(self, selector, attr, value):
-        print('wait for:', selector, attr, value)
+        if callable(value):
+            print('waiting for:', [selector, attr, 'predicate(x)'])
+        else:
+            print('waiting for:', [selector, attr, value])
         start = time.monotonic()
         log = 1
         while True:
@@ -102,7 +105,10 @@ class Thread(QThread):
             elif value == got:
                 return
             if time.monotonic() - start > log:
-                print('waiting for:', [selector, attr, value, '!=', got])
+                if callable(value):
+                    print('waiting for:', [selector, attr, 'predicate(x)', 'x = ', got])
+                else:
+                    print('waiting for:', [selector, attr, value, '!=', got])
                 log += 1
             assert time.monotonic() - start < self.timeout_seconds, [selector, attr, value, '!=', got]
 

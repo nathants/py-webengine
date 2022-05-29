@@ -4,49 +4,63 @@ import sys
 import os
 import pytest
 import time
-import requests
 import webengine
 import subprocess
+import traceback
+
+host = 'http://localhost:8000'
 
 class Main(webengine.Thread):
     def main(self):
-        self.load('http://localhost:8081')
+        self.action_delay_seconds = .025
+
+        # wait for http server to come up and the site to load
+        for _ in range(600):
+            try:
+                self.load(host)
+                self.wait_attr('a', 'innerText', ['home', 'files', 'api', 'websocket'])
+            except:
+                traceback.print_exc()
+                print('wait for site to be ready')
+                time.sleep(1)
+            else:
+                break
+        else:
+            assert False
+
+        # load the site
+        self.load(host)
 
         # check the network requests
-        assert ['get', 'http://localhost:8081/'] == self.network_requests[0]
+        assert ['get', host + '/'] == self.network_requests[0]
 
         # check the link names
-        self.wait_for_attr('a', 'innerText', ['HOME', 'PAGE-1', 'BROKEN-LINK'])
+        self.wait_attr('a', 'innerText', ['home', 'files', 'api', 'websocket'])
 
         # check the link hrefs
-        p = 'http://localhost:8081/#' # prefix
-        self.wait_for_attr('a', 'href', [f'{p}/', f'{p}/page1', f'{p}/nothing-to-see/here'])
+        self.wait_attr('a', 'href', [f'{host}/#/home', f'{host}/#/files', f'{host}/#/api', f'{host}/#/websocket'])
 
         # should start on the homepage
         assert '/' == self.location()
-        self.wait_for_attr('#content', 'innerText', ['home page'])
+        self.wait_attr('#content', 'innerText', ['home'])
 
-        # click on "page 1" and check contents
-        self.click('a#page-1')
-        self.wait_for_attr("#content p", 'innerText', ['this is a page with some data: 0'])
-        self.wait_for_attr("#content button", 'innerText', ['PUSH ME'])
+        # click on files and check contents
+        self.click('a#files')
+        self.wait_attr("#content p", 'innerText', ["files"])
 
-        # try clicking the button a few times
-        for i in range(10):
-            self.click("#content button")
-            self.wait_for_attr("#content p:first-of-type", 'innerText', [f'this is a page with some data: {i + 1}'])
+        # click on websocket and check contents
+        self.click('a#websocket')
+        self.wait_attr("#content p", 'innerText', lambda x: x[0].startswith('time:'))
 
-        # click on "broken link" and check contents
-        self.click('a#broken-link')
-        self.wait_for_attr("#content p", 'innerText', ['404'])
+        # click on search, type some stuff, hit enter, and check contents
+        self.click('input#search')
+        self.type("a/b/c")
+        self.enter()
+        self.wait_attr("#content p", 'innerText', ['a', 'b', 'c', 'Enter'])
 
         # go back to home page should work
         self.click('a#home')
-        self.wait_for_attr("#content", 'innerText', ['home page'])
-
-        # go back to "page 1" and check contents is still 10
-        self.click('a#page-1')
-        self.wait_for_attr("#content p", 'innerText', ['this is a page with some data: 10'])
+        self.wait_attr("#content", 'innerText', ['home'])
 
         # save a screenshot
         image = '/tmp/screen.png'
@@ -62,20 +76,11 @@ class Main(webengine.Thread):
 
 def test():
     # compile and run client webapp
-    server = subprocess.Popen('port=8081 runclj client.cljs', shell=True)
+    subprocess.check_call('gunzip --force --keep index.html.gz', shell=True)
+    server = subprocess.Popen('python -m http.server', shell=True)
     try:
-        # wait for http server to come up
-        for _ in range(500):
-            try:
-                requests.get('http://localhost:8081').status_code == 200
-            except:
-                time.sleep(.1)
-            else:
-                break
-        else:
-            assert False
         # run webengine
-        webengine.run_thread(Main)
+        webengine.run_thread(Main, devtools='horizontal')
     finally:
         # stop server
         server.terminate()
