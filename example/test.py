@@ -77,7 +77,7 @@ class Main(webengine.Thread):
 def test():
     # compile and run client webapp
     subprocess.check_call('gunzip --force --keep index.html.gz', shell=True)
-    server = subprocess.Popen('python -m http.server', shell=True)
+    server = subprocess.Popen('python3 -m http.server', shell=True)
     try:
         # run webengine
         webengine.run_thread(Main, devtools='horizontal')

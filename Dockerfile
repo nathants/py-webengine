@@ -1,18 +1,17 @@
-FROM archlinux:latest
+FROM debian:testing
 
-RUN echo "Server = https://mirrors.xtom.com/archlinux/\$repo/os/\$arch" >  /etc/pacman.d/mirrorlist
-RUN echo "Server = https://mirror.lty.me/archlinux/\$repo/os/\$arch"    >> /etc/pacman.d/mirrorlist
+RUN apt-get update
 
 # install py-webengine dependencies
-RUN pacman -Syu --noconfirm \
+RUN apt-get install -y \
     git \
-    python-pip \
-    python-pyqt6 \
-    python-pyqt6-webengine \
-    xorg-server-xvfb
+    libasound2 \
+    python3-pip \
+    qt6-webengine-dev/testing \
+    xvfb
 
 # install py-webengine
-RUN python -m pip install \
+RUN python3 -m pip install \
     git+https://github.com/nathants/py-webengine \
     pytest
 
@@ -22,4 +21,4 @@ WORKDIR /code
 
 ENV QTWEBENGINE_CHROMIUM_FLAGS="--no-sandbox --disable-dev-shm-usage --disable-gpu"
 
-ENTRYPOINT ["xvfb-run", "-d", "python3", "example/test.py"]
+CMD ["xvfb-run", "python3", "example/test.py"]
