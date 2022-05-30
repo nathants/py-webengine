@@ -16,6 +16,8 @@ inspect network requests.
 
 send native mouse and keyboard input.
 
+wait for values to show up on screen.
+
 make assertions.
 
 ## install and run

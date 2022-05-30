@@ -1,6 +1,5 @@
 # type: ignore
-
-from PyQt6.QtGui import QKeyEvent, QMouseEvent, QPointingDevice
+from PyQt6.QtGui import QKeyEvent, QMouseEvent
 from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot, QUrl, QEvent, Qt, QPointF
 from PyQt6.QtWidgets import QWidget, QMainWindow, QHBoxLayout, QVBoxLayout, QApplication
 from PyQt6.QtWebEngineWidgets import QWebEngineView
