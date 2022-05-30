@@ -51,8 +51,6 @@ class Main(webengine.Thread):
         self.click('a#files')
         self.wait_attr("#content p", 'innerText', ["files"])
 
-    import ipdb; ipdb.set_trace()
-
         # click on websocket and check contents
         self.click('a#websocket')
         self.wait_attr("#content p", 'innerText', lambda x: x[0].startswith('time:'))
