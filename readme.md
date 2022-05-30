@@ -94,13 +94,13 @@ class Main(webengine.Thread):
     def main(self):
 
         # wait for http server to come up and the site to load properly
-        for _ in range(600):
+        for _ in range(100):
             try:
                 self.load(host)
                 self.wait_attr('a', 'innerText', ['home', 'files', 'api', 'websocket'])
             except:
                 print('wait for site to be ready')
-                time.sleep(1)
+                time.sleep(.1)
             else:
                 break
         else:
