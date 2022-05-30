@@ -8,7 +8,7 @@ we have included:
 
 which is output from:
 
-- [new-gocljs/bin/deploy.sh](https://github.com/nathants/new-gocljs/blob/master/bin/deploy.sh)
+- [new-gocljs/bin/ensure.sh](https://github.com/nathants/new-gocljs/blob/master/bin/ensure.sh)
 
 if you have the dependencies installed, run:
 
