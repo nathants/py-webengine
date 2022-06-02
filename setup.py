@@ -10,7 +10,7 @@ setuptools.setup(
     packages=['webengine'],
     python_requires='>=3.6',
     install_requires=['PyQt6',
-                      'PyQt6-WebEngine'
+                      'PyQt6-WebEngine',
                       'pytest'],
     description='browser automation with pyqt webengine',
 )
