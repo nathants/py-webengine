@@ -21,4 +21,4 @@ WORKDIR /code
 
 ENV QTWEBENGINE_CHROMIUM_FLAGS="--no-sandbox --disable-dev-shm-usage --disable-gpu"
 
-CMD ["xvfb-run", "python3", "example/test.py"]
+CMD xvfb-run python3 example/test.py
