@@ -158,7 +158,7 @@ import ipdb; ipdb.set_trace()
 
 see the [example](https://github.com/nathants/py-webengine/blob/master/example/) for detailed usage.
 
-in the example we will test the frontend from [new-gocljs](https://github.com/nathants/new-gocljs).
+in the example we will test the frontend from [aws-gocljs](https://github.com/nathants/aws-gocljs).
 
 a live demo of that site is [here](https://gocljs.nathants.com).
 

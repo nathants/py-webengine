@@ -1,4 +1,4 @@
-in this example we will test the frontend from [new-gocljs](https://github.com/nathants/new-gocljs).
+in this example we will test the frontend from [aws-gocljs](https://github.com/nathants/aws-gocljs).
 
 a live demo is [here](https://gocljs.nathants.com).
 
@@ -8,7 +8,7 @@ we have included:
 
 which is output from:
 
-- [new-gocljs/bin/ensure.sh](https://github.com/nathants/new-gocljs/blob/master/bin/ensure.sh)
+- [aws-gocljs/bin/ensure.sh](https://github.com/nathants/aws-gocljs/blob/master/bin/ensure.sh)
 
 if you have the dependencies installed, run:
 
