@@ -26,8 +26,9 @@ docker run \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -e DISPLAY \
     --ipc host \
+    -v $(pwd)/example:/example \
     py-webengine \
-    sh -c 'python3 example/test.py'
+    sh -c 'python3 /example/test.py'
 ```
 
 or headless docker:

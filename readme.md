@@ -20,7 +20,7 @@ wait for values to show up on screen.
 
 make assertions.
 
-## install and run
+## install
 
 mac
 
@@ -36,6 +36,12 @@ linux
 apt-get install -y qt6-webengine-dev                                # debian/ubuntu
 pacman -S qt6-webengine                                             # arch
 python3 -m pip install git+https://github.com/nathants/py-webengine # all platforms
+```
+
+docker
+
+```bash
+docker build -t py-webengine .
 ```
 
 ## api
@@ -164,8 +170,9 @@ docker run \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -e DISPLAY \
     --ipc host \
+    -v $(pwd)/example:/example \
     py-webengine \
-    sh -c 'python3 example/test.py'
+    sh -c 'python3 /example/test.py'
 ```
 
 run headless docker:
@@ -181,8 +188,6 @@ docker run \
 docker example:
 
 ```bash
->> docker build -t py-webengine .
-
 >> docker run -it --rm py-webengine
 
 wait for: a innerText ['home', 'files', 'api', 'websocket']
