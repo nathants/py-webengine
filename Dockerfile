@@ -12,10 +12,19 @@ RUN apt-get install -y \
 
 # install py-webengine
 RUN python3 -m pip install \
-    git+https://github.com/nathants/py-webengine \
     pytest
 
-COPY . /code
+RUN groupadd -g 1000 py-webengine
+
+RUN useradd -d /code -s /bin/bash -m py-webengine -u 1000 -g 1000
+
+USER py-webengine
+
+ENV HOME /code
+
+COPY --chown=py-webengine:py-webengine . /code
+
+RUN python3 -m pip install /code
 
 WORKDIR /code
 
