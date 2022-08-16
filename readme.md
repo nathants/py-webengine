@@ -154,7 +154,46 @@ then insert somewhere in your test:
 import ipdb; ipdb.set_trace()
 ```
 
-## example
+run x11 docker:
+
+```bash
+docker run \
+    -h $HOSTNAME \
+    -e XAUTHORITY=/code/.Xauthority \
+    -v $HOME/.Xauthority:/code/.Xauthority \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    -e DISPLAY \
+    --ipc host \
+    py-webengine \
+    sh -c 'python3 example/test.py'
+```
+
+run headless docker:
+
+```bash
+docker run \
+    -it \
+    -v $(pwd)/example:/example \
+    py-webengine \
+    sh -c 'xvfb-run python3 /example/test.py'
+```
+
+docker example:
+
+```bash
+>> docker build -t py-webengine .
+
+>> docker run -it --rm py-webengine
+
+wait for: a innerText ['home', 'files', 'api', 'websocket']
+wait for: a href ['http://localhost:8000/#/home', 'http://localhost:8000/#/files', 'http://localhost:8000/#/api', 'http://localhost:8000/#/websocket']
+wait for: #content innerText ['home']
+wait for: #content p innerText ['files']
+wait for: #content p innerText 'predicate(x)'
+wait for: #content p innerText ['a', 'b', 'c', 'Enter']
+wait for: #content innerText ['home']
+PASSED
+```
 
 see the [example](https://github.com/nathants/py-webengine/blob/master/example/) for detailed usage.
 

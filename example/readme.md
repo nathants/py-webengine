@@ -16,12 +16,36 @@ if you have the dependencies installed, run:
 python test.py
 ```
 
-otherwise use docker:
+otherwise use x11 docker:
 
 ```bash
->> docker build --network host -t py-webengine .
+docker run \
+    -h $HOSTNAME \
+    -e XAUTHORITY=/code/.Xauthority \
+    -v $HOME/.Xauthority:/code/.Xauthority \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    -e DISPLAY \
+    --ipc host \
+    py-webengine \
+    sh -c 'python3 example/test.py'
+```
 
->> docker run -it --network host --rm py-webengine:latest
+or headless docker:
+
+```bash
+docker run \
+    -it \
+    -v $(pwd)/example:/example \
+    py-webengine \
+    sh -c 'xvfb-run python3 /example/test.py'
+```
+
+example:
+
+```bash
+>> docker build -t py-webengine .
+
+>> docker run -it --rm py-webengine
 
 wait for: a innerText ['home', 'files', 'api', 'websocket']
 wait for: a href ['http://localhost:8000/#/home', 'http://localhost:8000/#/files', 'http://localhost:8000/#/api', 'http://localhost:8000/#/websocket']
