@@ -1,20 +1,18 @@
-# type: ignore
-from PyQt6.QtGui import QKeyEvent, QMouseEvent
-from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot, QUrl, QEvent, Qt, QPointF
-from PyQt6.QtWidgets import QWidget, QMainWindow, QHBoxLayout, QVBoxLayout, QApplication
-from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWebEngineCore import QWebEngineUrlRequestInterceptor
-
-from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot, QUrl
-from PyQt6.QtWidgets import QWidget, QMainWindow, QHBoxLayout, QVBoxLayout, QApplication
-from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWebEngineCore import QWebEngineUrlRequestInterceptor
-
-import traceback
+#!/usr/bin/env python3
 import sys
+import os
 import time
-import concurrent.futures
+import traceback
+import subprocess
+import pytest
 import collections
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QSplitter
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWebEngineCore import QWebEngineUrlRequestInterceptor
+from PyQt6.QtCore import QUrl, QThread, pyqtSignal, pyqtSlot, QEvent, QPointF, Qt, QObject
+from PyQt6.QtGui import QMouseEvent, QKeyEvent
+
+host = 'http://localhost:8000'
 
 class NetworkInterceptor(QWebEngineUrlRequestInterceptor):
     def __init__(self, network_requests):
@@ -22,128 +20,97 @@ class NetworkInterceptor(QWebEngineUrlRequestInterceptor):
         self.network_requests = network_requests
 
     def interceptRequest(self, info):
-        method = bytes(info.requestMethod()).decode().lower()
-        url = bytes(info.requestUrl().toEncoded()).decode()
+        method = info.requestMethod().data().decode('utf-8').lower()
+        url = info.requestUrl().toString()
         if not url.startswith('devtools://'):
             self.network_requests.append([method, url])
 
-class Thread(QThread):
+class Runner(QObject):
+    load_url_signal = pyqtSignal(str)
+    run_js_signal = pyqtSignal(str)
+    click_signal = pyqtSignal(str)
+    type_signal = pyqtSignal(str)
+    enter_signal = pyqtSignal()
     screenshot_signal = pyqtSignal(str)
     exit_signal = pyqtSignal(int)
-    action_delay_seconds = .01 # seconds
-    timeout_seconds = 10 # seconds
+    wait_attr_signal = pyqtSignal(str, str, object)
+    js_result_signal = pyqtSignal(object)
+    attr_result_signal = pyqtSignal(object)
+    action_delay_seconds = 0.025
+    timeout_seconds = 10
 
-    def __init__(self, browser, *a, **kw):
-        super().__init__(*a, **kw)
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.network_requests = collections.deque([], 1000)
         self.load_counter = 0
-        self.browser = browser
-        self.network_interceptor = NetworkInterceptor(self.network_requests)
-        self.browser.page().profile().setUrlRequestInterceptor(self.network_interceptor)
+        self.js_result = None
+        self.attr_result = None
 
     def js(self, code):
-        "execute javascript and return the result as a string"
-        f = concurrent.futures.Future()
-        self.browser.page().runJavaScript(code, f.set_result)
-        time.sleep(self.action_delay_seconds)
-        return f.result()
+        self.js_result = None
+        self.run_js_signal.emit(code)
+        start_time = time.monotonic()
+        while self.js_result is None:
+            if time.monotonic() - start_time > self.timeout_seconds:
+                raise TimeoutError
+            time.sleep(0.01)
+        return self.js_result
+
+    def js_result_callback(self, result):
+        self.js_result = result
+
+    def attr_result_callback(self, result):
+        self.attr_result = result
 
     def click(self, selector):
-        "send native mouse input at the center of the first element matching selector"
-        count = int(self.js(f'[...document.querySelectorAll("{selector}")].length'))
-        assert count > 0, f'no element to click for selector: {selector}'
-        x = int(self.js(f'[...document.querySelectorAll("{selector}")][0].getClientRects()[0].x'))
-        y = int(self.js(f'[...document.querySelectorAll("{selector}")][0].getClientRects()[0].y'))
-        width = int(self.js(f'[...document.querySelectorAll("{selector}")][0].getClientRects()[0].width'))
-        height = int(self.js(f'[...document.querySelectorAll("{selector}")][0].getClientRects()[0].height'))
-        event = QMouseEvent(QEvent.Type.MouseButtonPress, QPointF(x + (width / 2), y + (height / 2)), Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
-        event.artificial = True
-        QApplication.postEvent(self.browser.focusProxy(), event)
+        self.click_signal.emit(selector)
         time.sleep(self.action_delay_seconds)
-        event = QMouseEvent(QEvent.Type.MouseButtonRelease, QPointF(x + (width / 2), y + (height / 2)), Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
-        event.artificial = True
-        QApplication.postEvent(self.browser.focusProxy(), event)
 
     def type(self, value):
-        "send native keyboard input, one character at a time"
-        for char in value:
-            event = QKeyEvent(QEvent.Type.KeyPress, 0, Qt.KeyboardModifier.NoModifier, char)
-            event.artificial = True
-            QApplication.postEvent(self.browser.focusProxy(), event)
-            time.sleep(self.action_delay_seconds)
-            event = QKeyEvent(QEvent.Type.KeyRelease, 0, Qt.KeyboardModifier.NoModifier, char)
-            event.artificial = True
-            QApplication.postEvent(self.browser.focusProxy(), event)
+        self.type_signal.emit(value)
+        time.sleep(self.action_delay_seconds)
 
     def enter(self):
-        "send native keyboard input enter"
-        event = QKeyEvent(QEvent.Type.KeyPress, 0, Qt.KeyboardModifier.NoModifier, "\r")
-        event.artificial = True
-        QApplication.postEvent(self.browser.focusProxy(), event)
+        self.enter_signal.emit()
         time.sleep(self.action_delay_seconds)
-        event = QKeyEvent(QEvent.Type.KeyRelease, 0, Qt.KeyboardModifier.NoModifier, "\r")
-        event.artificial = True
-        QApplication.postEvent(self.browser.focusProxy(), event)
 
     def attr(self, selector, attr):
-        "return the list of the attribute for all elements matching selector"
-        return self.js(f'[...document.querySelectorAll("{selector}")].map(x => x.{attr})')
+        self.attr_result = None
+        self.wait_attr_signal.emit(selector, attr, None)
+        start_time = time.monotonic()
+        while self.attr_result is None:
+            if time.monotonic() - start_time > self.timeout_seconds:
+                raise TimeoutError
+            time.sleep(0.01)
+        return self.attr_result
 
     def wait_attr(self, selector, attr, value):
-        "wait for the attribute of all elements matching a selector have the given value"
-        if callable(value):
-            print('waiting for:', [selector, attr, 'predicate(x)'])
-        else:
-            print('waiting for:', [selector, attr, value])
-        start = time.monotonic()
-        log = 1
+        start_time = time.monotonic()
         while True:
-            got = self.attr(selector, attr)
+            attr_values = self.attr(selector, attr)
+            print("wait", selector, attr, attr_values)
             if callable(value):
-                if value(got):
-                    return
-            elif value == got:
-                return
-            if time.monotonic() - start > log:
-                if callable(value):
-                    print('waiting for:', [selector, attr, 'predicate(x)', 'x = ', got])
-                else:
-                    print('waiting for:', [selector, attr, value, '!=', got])
-                log += 1
-            assert time.monotonic() - start < self.timeout_seconds, [selector, attr, value, '!=', got]
+                if value(attr_values):
+                    break
+            elif attr_values == value:
+                break
+            if time.monotonic() - start_time > self.timeout_seconds:
+                raise TimeoutError
+            time.sleep(0.1)
 
     def load(self, url):
-        "load url"
-        if '://' not in url:
-            url = f'https://{url}'
-        # load a blank page before clearing network requests
         count = self.load_counter
-        self.js('document.location.href = "http://127.0.0.1:1"')
-        while True:
-            if self.load_counter == count + 1:
-                break
-            time.sleep(.01)
-        # clear network requests
-        self.network_requests.clear()
-        # now that network requests are clear and the page is empty, load the next page
-        count = self.load_counter
-        self.js(f'document.location.href = "{url}"')
-        while True:
-            if self.load_counter == count + 1:
-                break
-            time.sleep(.01)
+        start_time = time.monotonic()
+        self.load_url_signal.emit(url)
+        while self.load_counter == count:
+            if time.monotonic() - start_time > self.timeout_seconds:
+                raise TimeoutError
+            time.sleep(0.01)
 
     def screenshot(self, path):
-        "save a png or jpg at path"
-        assert path.endswith('.jpg') or path.endswith('.png')
         self.screenshot_signal.emit(path)
 
     def run(self):
-        "run the main method"
-        while True:
-            if self.load_counter == 1:
-                break
-            time.sleep(.01)
         try:
             self.main()
         except:
@@ -153,53 +120,134 @@ class Thread(QThread):
             self.exit_signal.emit(0)
 
     def main(self):
-        "implement this method as your test"
-        assert False, 'please implement main()'
+        raise NotImplementedError
 
 class Window(QMainWindow):
-    def __init__(self, app, thread, devtools, page_zoom, devtools_zoom, dimensions):
-        assert not devtools or devtools in {'horizontal', 'vertical'}
+    def __init__(self, app, worker, devtools='vertical', page_zoom=1.0, devtools_zoom=1.0, dimensions=None):
         super().__init__()
-        if dimensions and dimensions[0] and dimensions[1]:
+        self.app = app
+        self.worker = worker()
+        self.network_interceptor = NetworkInterceptor(self.worker.network_requests)
+        if dimensions:
             self.setFixedSize(*dimensions)
         self.browser = QWebEngineView()
-        self.app = app
-        self.thread = thread(self.browser, parent=self)
-        self.thread.screenshot_signal.connect(self.screenshot)
-        self.thread.exit_signal.connect(self.exit)
-        self.browser.setUrl(QUrl("http://127.0.0.1:1"))
+        self.browser.setUrl(QUrl("about:blank"))
         self.browser.page().loadFinished.connect(self.onload)
         self.browser.page().setZoomFactor(page_zoom)
+        self.browser.page().profile().setUrlRequestInterceptor(self.network_interceptor)
         self.devtools = QWebEngineView()
         self.devtools.page().setZoomFactor(devtools_zoom)
         self.browser.page().setDevToolsPage(self.devtools.page())
         wid = QWidget(self)
         self.setCentralWidget(wid)
-        if devtools == 'horizontal':
-            box = QVBoxLayout()
-        else:
-            box = QHBoxLayout()
-        box.addWidget(self.browser)
+        orientation = Qt.Orientation.Horizontal if devtools == 'vertical' else Qt.Orientation.Vertical
+        layout = QSplitter(orientation)
+        layout.addWidget(self.browser)
         if devtools:
-            box.addWidget(self.devtools)
-        wid.setLayout(box)
+            layout.addWidget(self.devtools)
+        layout.setStretchFactor(0, 3)
+        layout.setStretchFactor(1, 1)
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(layout)
+        wid.setLayout(main_layout)
         self.show()
+        self.worker.load_url_signal.connect(self.load_url)
+        self.worker.run_js_signal.connect(self.run_js)
+        self.worker.click_signal.connect(self.click_element)
+        self.worker.type_signal.connect(self.type_text)
+        self.worker.enter_signal.connect(self.press_enter)
+        self.worker.screenshot_signal.connect(self.take_screenshot)
+        self.worker.wait_attr_signal.connect(self.check_attribute)
+        self.worker.exit_signal.connect(self.exit_app)
+        self.worker.js_result_signal.connect(self.worker.js_result_callback)
+        self.worker.attr_result_signal.connect(self.worker.attr_result_callback)
+        self.thread = QThread()
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.run)
         self.thread.start()
 
-    @pyqtSlot(int)
-    def exit(self, code):
-        self.app.exit(code)
+    @pyqtSlot()
+    def onload(self):
+        self.worker.load_counter += 1
 
     @pyqtSlot(str)
-    def screenshot(self, path):
+    def load_url(self, url):
+        self.browser.setUrl(QUrl(url))
+
+    @pyqtSlot(str)
+    def run_js(self, code):
+        def js_callback(result):
+            self.worker.js_result_signal.emit(result)
+        self.browser.page().runJavaScript(code, js_callback)
+
+    @pyqtSlot(str)
+    def click_element(self, selector):
+        def process_click(result):
+            if not result:
+                print(f"Element not found for selector: {selector}")
+                return
+            x, y, width, height = result
+            center_x = x + width / 2
+            center_y = y + height / 2
+            position = QPointF(center_x, center_y)
+            global_pos = self.browser.mapToGlobal(position.toPoint())
+            global_position = QPointF(float(global_pos.x()), float(global_pos.y()))
+            args = position, global_position, Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier
+            press_event = QMouseEvent(QEvent.Type.MouseButtonPress, *args)
+            release_event = QMouseEvent(QEvent.Type.MouseButtonRelease, *args)
+            QApplication.postEvent(self.browser.focusProxy(), press_event)
+            QApplication.postEvent(self.browser.focusProxy(), release_event)
+        code = f'''
+            var element = document.querySelector("{selector}");
+            if (element) {{
+                var rect = element.getBoundingClientRect();
+                [rect.x, rect.y, rect.width, rect.height];
+            }} else {{
+                null;
+            }}
+        '''
+        self.browser.page().runJavaScript(code, process_click)
+
+    @pyqtSlot(str)
+    def type_text(self, value):
+        for char in value:
+            args = 0, Qt.KeyboardModifier.NoModifier, char
+            press_event = QKeyEvent(QEvent.Type.KeyPress, *args)
+            release_event = QKeyEvent(QEvent.Type.KeyRelease, *args)
+            QApplication.postEvent(self.browser.focusProxy(), press_event)
+            QApplication.postEvent(self.browser.focusProxy(), release_event)
+
+    @pyqtSlot()
+    def press_enter(self):
+        args = Qt.Key.Key_Return, Qt.KeyboardModifier.NoModifier, "\r"
+        press_event = QKeyEvent(QEvent.Type.KeyPress, *args)
+        release_event = QKeyEvent(QEvent.Type.KeyRelease, *args)
+        QApplication.postEvent(self.browser.focusProxy(), press_event)
+        QApplication.postEvent(self.browser.focusProxy(), release_event)
+
+    @pyqtSlot(str)
+    def take_screenshot(self, path):
         self.browser.grab().save(path)
 
-    def onload(self, *a, **kw):
-        self.thread.load_counter += 1
+    @pyqtSlot(str, str, object)
+    def check_attribute(self, selector, attr, value):
+        code = f'''
+            var elements = [...document.querySelectorAll("{selector}")];
+            elements.map(x => x.{attr});
+        '''
 
-def run_thread(thread_class, devtools=None, page_zoom=1.0, devtools_zoom=1.5, dimensions=(0, 0), qt_argv=['-platform', 'minimal']):
-    app = QApplication(qt_argv)
-    window = Window(app, thread_class, devtools, page_zoom, devtools_zoom, dimensions)
-    _ = window # hold ref to window to avoid gc webengine
-    if app.exec() != 0:
-        sys.exit(1)
+        def js_callback(result):
+            self.worker.attr_result_signal.emit(result)
+        self.browser.page().runJavaScript(code, js_callback)
+
+    @pyqtSlot(int)
+    def exit_app(self, code):
+        self.thread.quit()
+        self.thread.wait()
+        self.app.exit(code)
+
+def run(worker):
+    app = QApplication(sys.argv)
+    window = Window(app, worker)
+    code = app.exec()
+    return code

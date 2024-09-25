@@ -56,5 +56,4 @@ wait for: #content p innerText 'predicate(x)'
 wait for: #content p innerText ['a', 'b', 'c', 'Enter']
 wait for: #content innerText ['home']
 PASSED
-
 ```

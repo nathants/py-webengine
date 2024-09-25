@@ -95,7 +95,7 @@ subclass `webengine.Thread` and implement `main()`:
 
 host = 'http://localhost:8000'
 
-class Main(webengine.Thread):
+class Main(webengine.Runner):
 
     action_delay_seconds = .025
 
@@ -126,15 +126,11 @@ then invoke your test:
 
 ```python
 def test():
-    # build your webapp
     subprocess.check_call('gunzip --force --keep index.html.gz', shell=True)
-    # run your webapp
     server = subprocess.Popen('python3 -m http.server', shell=True)
     try:
-        # run webengine
-        webengine.run_thread(Main, devtools='horizontal')
+        webengine.run(Main)
     finally:
-        # stop webapp
         server.terminate()
 
 if __name__ == '__main__':
