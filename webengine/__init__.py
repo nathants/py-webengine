@@ -123,11 +123,11 @@ class Runner(QObject):
         raise NotImplementedError
 
 class Window(QMainWindow):
-    def __init__(self, app, worker, devtools='vertical', page_zoom=1.0, devtools_zoom=1.0, dimensions=None):
+    def __init__(self, app, runner, devtools='vertical', page_zoom=1.0, devtools_zoom=1.0, dimensions=None):
         super().__init__()
         self.app = app
-        self.worker = worker()
-        self.network_interceptor = NetworkInterceptor(self.worker.network_requests)
+        self.runner = runner()
+        self.network_interceptor = NetworkInterceptor(self.runner.network_requests)
         if dimensions:
             self.setFixedSize(*dimensions)
         self.browser = QWebEngineView()
@@ -135,40 +135,42 @@ class Window(QMainWindow):
         self.browser.page().loadFinished.connect(self.onload)
         self.browser.page().setZoomFactor(page_zoom)
         self.browser.page().profile().setUrlRequestInterceptor(self.network_interceptor)
-        self.devtools = QWebEngineView()
-        self.devtools.page().setZoomFactor(devtools_zoom)
-        self.browser.page().setDevToolsPage(self.devtools.page())
-        wid = QWidget(self)
-        self.setCentralWidget(wid)
         orientation = Qt.Orientation.Horizontal if devtools == 'vertical' else Qt.Orientation.Vertical
-        layout = QSplitter(orientation)
-        layout.addWidget(self.browser)
         if devtools:
+            wid = QWidget(self)
+            self.setCentralWidget(wid)
+            layout = QSplitter(orientation)
+            layout.addWidget(self.browser)
+            self.devtools = QWebEngineView()
+            self.devtools.page().setZoomFactor(devtools_zoom)
+            self.browser.page().setDevToolsPage(self.devtools.page())
             layout.addWidget(self.devtools)
-        layout.setStretchFactor(0, 3)
-        layout.setStretchFactor(1, 1)
-        main_layout = QVBoxLayout()
-        main_layout.addWidget(layout)
-        wid.setLayout(main_layout)
-        self.show()
-        self.worker.load_url_signal.connect(self.load_url)
-        self.worker.run_js_signal.connect(self.run_js)
-        self.worker.click_signal.connect(self.click_element)
-        self.worker.type_signal.connect(self.type_text)
-        self.worker.enter_signal.connect(self.press_enter)
-        self.worker.screenshot_signal.connect(self.take_screenshot)
-        self.worker.wait_attr_signal.connect(self.check_attribute)
-        self.worker.exit_signal.connect(self.exit_app)
-        self.worker.js_result_signal.connect(self.worker.js_result_callback)
-        self.worker.attr_result_signal.connect(self.worker.attr_result_callback)
+            layout.setStretchFactor(0, 3)
+            layout.setStretchFactor(1, 1)
+            main_layout = QVBoxLayout()
+            main_layout.addWidget(layout)
+            wid.setLayout(main_layout)
+            self.show()
+        else:
+            self.browser.show()
+        self.runner.load_url_signal.connect(self.load_url)
+        self.runner.run_js_signal.connect(self.run_js)
+        self.runner.click_signal.connect(self.click_element)
+        self.runner.type_signal.connect(self.type_text)
+        self.runner.enter_signal.connect(self.press_enter)
+        self.runner.screenshot_signal.connect(self.take_screenshot)
+        self.runner.wait_attr_signal.connect(self.check_attribute)
+        self.runner.exit_signal.connect(self.exit_app)
+        self.runner.js_result_signal.connect(self.runner.js_result_callback)
+        self.runner.attr_result_signal.connect(self.runner.attr_result_callback)
         self.thread = QThread()
-        self.worker.moveToThread(self.thread)
-        self.thread.started.connect(self.worker.run)
+        self.runner.moveToThread(self.thread)
+        self.thread.started.connect(self.runner.run)
         self.thread.start()
 
     @pyqtSlot()
     def onload(self):
-        self.worker.load_counter += 1
+        self.runner.load_counter += 1
 
     @pyqtSlot(str)
     def load_url(self, url):
@@ -177,7 +179,7 @@ class Window(QMainWindow):
     @pyqtSlot(str)
     def run_js(self, code):
         def js_callback(result):
-            self.worker.js_result_signal.emit(result)
+            self.runner.js_result_signal.emit(result)
         self.browser.page().runJavaScript(code, js_callback)
 
     @pyqtSlot(str)
@@ -237,7 +239,7 @@ class Window(QMainWindow):
         '''
 
         def js_callback(result):
-            self.worker.attr_result_signal.emit(result)
+            self.runner.attr_result_signal.emit(result)
         self.browser.page().runJavaScript(code, js_callback)
 
     @pyqtSlot(int)
@@ -246,8 +248,8 @@ class Window(QMainWindow):
         self.thread.wait()
         self.app.exit(code)
 
-def run(worker):
+def run(runner, devtools=None, page_zoom=1.0, devtools_zoom=1.0, dimensions=None):
     app = QApplication(sys.argv)
-    window = Window(app, worker)
+    window = Window(app, runner, devtools, page_zoom, devtools_zoom, dimensions)
     code = app.exec()
     return code

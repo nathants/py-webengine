@@ -9,7 +9,7 @@ import subprocess
 
 host = 'http://localhost:8000'
 
-class Main(webengine.Runner):
+class Runner(webengine.Runner):
     action_delay_seconds = 0.1
 
     def location(self):
@@ -86,7 +86,7 @@ def test():
     server = subprocess.Popen('python3 -m http.server', shell=True)
     try:
         time.sleep(1)
-        code = webengine.run(Main)
+        code = webengine.run(Runner, devtools='horizontal')
         if code != 0:
             sys.exit(code)
     finally:
