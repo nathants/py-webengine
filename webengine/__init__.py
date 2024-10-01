@@ -151,7 +151,7 @@ class Window(QMainWindow):
             wid.setLayout(main_layout)
             self.show()
         else:
-            self.browser.show()
+            self.browser.showFullScreen()
         self.runner.load_url_signal.connect(self.load_url)
         self.runner.run_js_signal.connect(self.run_js)
         self.runner.click_signal.connect(self.click_element)
