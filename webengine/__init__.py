@@ -4,7 +4,6 @@ import os
 import time
 import traceback
 import subprocess
-import pytest
 import collections
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QSplitter
 from PyQt6.QtWebEngineWidgets import QWebEngineView
